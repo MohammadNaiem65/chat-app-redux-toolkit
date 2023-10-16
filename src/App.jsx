@@ -4,6 +4,8 @@ import Inbox from './pages/Inbox';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import useCheckAuth from './hooks/useCheckAuth';
+import PublicRoute from './routes/PublicRoute';
+import PrivateRoute from './routes/PrivateRoute';
 
 function App() {
 	// local states
@@ -13,10 +15,38 @@ function App() {
 		authCheck && (
 			<Router>
 				<Routes>
-					<Route path='/' element={<Login />} />
-					<Route path='/register' element={<Register />} />
-					<Route path='/inbox' element={<Conversation />} />
-					<Route path='/inbox/:id' element={<Inbox />} />
+					<Route
+						path='/'
+						element={
+							<PublicRoute>
+								<Login />
+							</PublicRoute>
+						}
+					/>
+					<Route
+						path='/register'
+						element={
+							<PublicRoute>
+								<Register />
+							</PublicRoute>
+						}
+					/>
+					<Route
+						path='/inbox'
+						element={
+							<PrivateRoute>
+								<Conversation />
+							</PrivateRoute>
+						}
+					/>
+					<Route
+						path='/inbox/:id'
+						element={
+							<PrivateRoute>
+								<Inbox />
+							</PrivateRoute>
+						}
+					/>
 				</Routes>
 			</Router>
 		)
