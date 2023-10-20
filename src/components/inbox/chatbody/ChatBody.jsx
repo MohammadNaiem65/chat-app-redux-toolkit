@@ -29,7 +29,7 @@ export default function ChatBody() {
 				) : (
 					messages.length > 0 && <Messages messages={messages} />
 				)}
-				<Options />
+				<Options existedMessage={messages?.length && messages[0]} />
 			</div>
 		</div>
 	);

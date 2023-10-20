@@ -1,4 +1,5 @@
 import apiSlice from '../api/apiSlice';
+import messagesApi from '../messages/messagesApi';
 
 const conversationApi = apiSlice.injectEndpoints({
 	endpoints: (builder) => ({
@@ -25,6 +26,32 @@ const conversationApi = apiSlice.injectEndpoints({
 				method: 'PATCH',
 				body: data,
 			}),
+			async onQueryStarted(
+				{ user: sender },
+				{ queryFulfilled, dispatch }
+			) {
+				const { data: conversationData } = await queryFulfilled;
+				const {
+					id: conversationId,
+					users,
+					message,
+					timestamp,
+				} = conversationData;
+
+				const receiver = users.find(
+					(user) => user.email !== sender.email
+				);
+
+				const data = {
+					conversationId,
+					sender,
+					receiver,
+					message,
+					timestamp,
+				};
+
+				dispatch(messagesApi.endpoints.addMessage.initiate(data));
+			},
 		}),
 	}),
 });
