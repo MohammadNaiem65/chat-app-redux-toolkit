@@ -1,35 +1,63 @@
 import { useState } from 'react';
 import isValidEmail from '../../utils/isValidEmail';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import userApi from '../../features/user/userApi';
+import Error from '../ui/Error';
+import conversationApi from '../../features/conversation/conversationApi';
 
 export default function Modal({ open, control }) {
 	// hooks
 	const dispatch = useDispatch();
+	const { user } = useSelector((state) => state.auth);
 
 	// local states
+	const [conversationDetails, setConversationDetails] = useState(null);
 	const [messageDetails, setMessageDetails] = useState({
 		receiver: '',
 		message: '',
 	});
+	const [error, setError] = useState('');
 
 	// handle email debounce and validation
 	const setReceiver = () => {
 		let timeoutId;
-		return (e) => {
+		return (...args) => {
 			clearTimeout(timeoutId);
 
-			timeoutId = setTimeout(() => {
-				const email = isValidEmail(e.target.value);
-
-				if (email) {
-					dispatch(userApi.endpoints.getUser.initiate(email[0]))
-						.unwrap()
-						.then((res) => console.log(res));
-				}
-			}, 600);
+			timeoutId = setTimeout(getConversationDetails(...args), 600);
 		};
 	};
+
+	const getConversationDetails = (e) => {
+		const email = isValidEmail(e.target.value);
+
+		if (email) {
+			dispatch(userApi.endpoints.getUser.initiate(email[0]))
+				.unwrap()
+				.then((res) => {
+					// if user is unavailable
+					if (res.length === 0) {
+						setError('No user found.');
+					} else if (res.length > 0) {
+						// if user is available
+						const partner = res[0];
+
+						dispatch(
+							conversationApi.endpoints.getConversation.initiate({
+								user: user.email,
+								partner: partner.email,
+							})
+						)
+							.unwrap()
+							.then((res) => {
+								setConversationDetails(res);
+							});
+					}
+				});
+		}
+	};
+
+	console.log(conversationDetails);
 
 	return (
 		open && (
@@ -88,7 +116,7 @@ export default function Modal({ open, control }) {
 							</button>
 						</div>
 
-						{/* <Error message="There was an error" /> */}
+						{error && <Error message={error} />}
 					</form>
 				</div>
 			</>
