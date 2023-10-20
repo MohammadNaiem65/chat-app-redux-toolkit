@@ -99,9 +99,15 @@ export default function Modal({ open, control }) {
 	useEffect(() => {
 		if (creatingConversationSuccessState) {
 			control();
+		} else if (creatingConversationErrorState) {
+			setError(creatingConversationError?.data);
 		}
-		
-	}, [creatingConversationSuccessState]);
+		// disable lint error for not using control as dependency
+	}, [
+		creatingConversationSuccessState,
+		creatingConversationErrorState,
+		creatingConversationError?.data,
+	]);
 
 	return (
 		open && (

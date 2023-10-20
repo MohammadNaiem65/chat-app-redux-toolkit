@@ -7,6 +7,11 @@ const conversationApi = apiSlice.injectEndpoints({
 				url: `/conversations?participants_like=${user}-${partner}&participants_like=${partner}-${user}`,
 			}),
 		}),
+		getConversations: builder.query({
+			query: (email) => ({
+				url: `/conversations?participants_like=${email}`,
+			}),
+		}),
 		createConversation: builder.mutation({
 			query: (data) => ({
 				url: '/conversations',
@@ -18,5 +23,8 @@ const conversationApi = apiSlice.injectEndpoints({
 });
 
 export default conversationApi;
-export const { useGetConversationQuery, useCreateConversationMutation } =
-	conversationApi;
+export const {
+	useGetConversationQuery,
+	useGetConversationsQuery,
+	useCreateConversationMutation,
+} = conversationApi;
