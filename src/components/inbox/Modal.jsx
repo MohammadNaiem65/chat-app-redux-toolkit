@@ -1,14 +1,24 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import isValidEmail from '../../utils/isValidEmail';
 import { useDispatch, useSelector } from 'react-redux';
 import userApi from '../../features/user/userApi';
 import Error from '../ui/Error';
-import conversationApi from '../../features/conversation/conversationApi';
+import conversationApi, {
+	useCreateConversationMutation,
+} from '../../features/conversation/conversationApi';
 
 export default function Modal({ open, control }) {
 	// hooks
 	const dispatch = useDispatch();
 	const { user } = useSelector((state) => state.auth);
+	const [
+		createConversation,
+		{
+			isSuccess: creatingConversationSuccessState,
+			isError: creatingConversationErrorState,
+			error: creatingConversationError,
+		},
+	] = useCreateConversationMutation();
 
 	// local states
 	const [conversationDetails, setConversationDetails] = useState(null);
@@ -22,6 +32,7 @@ export default function Modal({ open, control }) {
 	const setReceiver = () => {
 		let timeoutId;
 		return (...args) => {
+			setError('');
 			clearTimeout(timeoutId);
 
 			timeoutId = setTimeout(getConversationDetails(...args), 600);
@@ -29,10 +40,13 @@ export default function Modal({ open, control }) {
 	};
 
 	const getConversationDetails = (e) => {
-		const email = isValidEmail(e.target.value);
+		const validEmail = isValidEmail(e.target.value);
 
-		if (email) {
-			dispatch(userApi.endpoints.getUser.initiate(email[0]))
+		if (validEmail && validEmail[0] === user.email) {
+			setError('You can not message yourself.');
+		} else if (validEmail && validEmail[0] !== user.email) {
+			// get user details
+			dispatch(userApi.endpoints.getUser.initiate(validEmail[0]))
 				.unwrap()
 				.then((res) => {
 					// if user is unavailable
@@ -41,6 +55,10 @@ export default function Modal({ open, control }) {
 					} else if (res.length > 0) {
 						// if user is available
 						const partner = res[0];
+						setMessageDetails({
+							...messageDetails,
+							receiver: partner,
+						});
 
 						dispatch(
 							conversationApi.endpoints.getConversation.initiate({
@@ -57,7 +75,33 @@ export default function Modal({ open, control }) {
 		}
 	};
 
-	console.log(conversationDetails);
+	// handle send message
+	const handleSendMessage = (e) => {
+		e.preventDefault();
+
+		const { email, name, id } = messageDetails.receiver;
+
+		const data = {
+			participants: `${user.email}-${email}`,
+			users: [user, { email, name, id }],
+			message: messageDetails.message,
+			timestamp: new Date().getTime(),
+		};
+
+		if (conversationDetails.length === 0) {
+			createConversation(data);
+		} else if (conversationDetails.length > 0) {
+			console.log(conversationDetails.length, 'edit conv');
+		}
+	};
+
+	// hide modal
+	useEffect(() => {
+		if (creatingConversationSuccessState) {
+			control();
+		}
+		
+	}, [creatingConversationSuccessState]);
 
 	return (
 		open && (
@@ -69,7 +113,9 @@ export default function Modal({ open, control }) {
 					<h2 className='mt-6 text-center text-3xl font-extrabold text-gray-900'>
 						Send message
 					</h2>
-					<form className='mt-8 space-y-6'>
+					<form
+						className='mt-8 space-y-6'
+						onSubmit={handleSendMessage}>
 						<div className='rounded-md shadow-sm -space-y-px'>
 							<div>
 								<label htmlFor='receiver' className='sr-only'>
