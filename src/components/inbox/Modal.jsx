@@ -5,6 +5,7 @@ import userApi from '../../features/user/userApi';
 import Error from '../ui/Error';
 import conversationApi, {
 	useCreateConversationMutation,
+	useEditConversationMutation,
 } from '../../features/conversation/conversationApi';
 
 export default function Modal({ open, control }) {
@@ -19,6 +20,14 @@ export default function Modal({ open, control }) {
 			error: creatingConversationError,
 		},
 	] = useCreateConversationMutation();
+	const [
+		editConversation,
+		{
+			isSuccess: editConversationSuccessState,
+			isError: editConversationErrorState,
+			error: editConversationError,
+		},
+	] = useEditConversationMutation();
 
 	// local states
 	const [conversationDetails, setConversationDetails] = useState(null);
@@ -88,25 +97,38 @@ export default function Modal({ open, control }) {
 			timestamp: new Date().getTime(),
 		};
 
+		// create new conversation
 		if (conversationDetails.length === 0) {
 			createConversation(data);
 		} else if (conversationDetails.length > 0) {
-			console.log(conversationDetails.length, 'edit conv');
+			// edit conversation
+			editConversation({ id: conversationDetails[0].id, data });
 		}
 	};
 
 	// hide modal
 	useEffect(() => {
-		if (creatingConversationSuccessState) {
+		if (creatingConversationSuccessState || editConversationSuccessState) {
 			control();
-		} else if (creatingConversationErrorState) {
-			setError(creatingConversationError?.data);
+		} else if (
+			creatingConversationErrorState ||
+			editConversationErrorState
+		) {
+			setError(
+				creatingConversationErrorState
+					? creatingConversationError?.data
+					: editConversationError?.data
+			);
 		}
 		// disable lint error for not using control as dependency
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [
 		creatingConversationSuccessState,
+		editConversationSuccessState,
 		creatingConversationErrorState,
+		editConversationErrorState,
 		creatingConversationError?.data,
+		editConversationError?.data,
 	]);
 
 	return (
