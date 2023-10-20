@@ -34,6 +34,7 @@ export default function ChatItems() {
 			return (
 				<ChatItem
 					key={conversation.id}
+					id={conversation.id}
 					avatar='https://cdn.pixabay.com/photo/2018/09/12/12/14/man-3672010__340.jpg'
 					name={partner}
 					lastMessage={message}
