@@ -26,7 +26,7 @@ export default function Options({ existedMessage }) {
 			timestamp: new Date().getTime(),
 		};
 
-		editConversation({ id: existedMessage.id, data, user });
+		editConversation({ id: existedMessage.conversationId, data, user });
 		setMessage('');
 	};
 

@@ -99,11 +99,13 @@ export default function Modal({ open, control }) {
 
 		// create new conversation
 		if (conversationDetails.length === 0) {
-			createConversation(data);
+			createConversation({ user, data });
 		} else if (conversationDetails.length > 0) {
 			// edit conversation
-			editConversation({ id: conversationDetails[0].id, data });
+			editConversation({ id: conversationDetails[0].id, data, user });
 		}
+
+		setMessageDetails({ receiver: '', message: '' });
 	};
 
 	// hide modal

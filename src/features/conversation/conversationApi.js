@@ -8,18 +8,66 @@ const conversationApi = apiSlice.injectEndpoints({
 				url: `/conversations?participants_like=${user}-${partner}&participants_like=${partner}-${user}`,
 			}),
 		}),
+
 		getConversations: builder.query({
 			query: (email) => ({
 				url: `/conversations?participants_like=${email}`,
 			}),
 		}),
+
 		createConversation: builder.mutation({
-			query: (data) => ({
+			query: ({ data }) => ({
 				url: '/conversations',
 				method: 'POST',
 				body: data,
 			}),
+			async onQueryStarted(
+				{ user: sender },
+				{ queryFulfilled, dispatch }
+			) {
+				try {
+					const { data: conversationData } = await queryFulfilled;
+					const {
+						id: conversationId,
+						users,
+						message,
+						timestamp,
+					} = conversationData;
+
+					const receiver = users.find(
+						(user) => user.email !== sender.email
+					);
+
+					const messageDetails = {
+						conversationId,
+						sender,
+						receiver,
+						message,
+						timestamp,
+					};
+
+					dispatch(
+						messagesApi.endpoints.addMessage.initiate(
+							messageDetails
+						)
+					);
+
+					// pessimistically add conversation into cache
+					dispatch(
+						apiSlice.util.updateQueryData(
+							'getConversations',
+							sender.email,
+							(draft) => {
+								draft.unshift(conversationData);
+							}
+						)
+					);
+				} catch (error) {
+					// do nothing
+				}
+			},
 		}),
+
 		editConversation: builder.mutation({
 			query: ({ id, data }) => ({
 				url: `/conversations/${id}`,
@@ -57,6 +105,7 @@ const conversationApi = apiSlice.injectEndpoints({
 							);
 
 							const messageDetails = {
+								id: draft.length + 1,
 								conversationId: id,
 								sender,
 								receiver,
