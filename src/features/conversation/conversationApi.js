@@ -27,30 +27,80 @@ const conversationApi = apiSlice.injectEndpoints({
 				body: data,
 			}),
 			async onQueryStarted(
-				{ user: sender },
+				{ user: sender, id, data },
 				{ queryFulfilled, dispatch }
 			) {
-				const { data: conversationData } = await queryFulfilled;
-				const {
-					id: conversationId,
-					users,
-					message,
-					timestamp,
-				} = conversationData;
+				// optimistic conversation cache update
+				const conversationUpdate = dispatch(
+					apiSlice.util.updateQueryData(
+						'getConversations',
+						sender.email,
+						(draft) => {
+							const conversation = draft.find((c) => c.id == id);
 
-				const receiver = users.find(
-					(user) => user.email !== sender.email
+							conversation.message = data.message;
+							conversation.timestamp = data.timestamp;
+						}
+					)
 				);
 
-				const data = {
-					conversationId,
-					sender,
-					receiver,
-					message,
-					timestamp,
-				};
+				// optimistic messages cache update
+				const messagesUpdate = dispatch(
+					apiSlice.util.updateQueryData(
+						'getMessages',
+						JSON.stringify(id),
+						(draft) => {
+							const { users, message, timestamp } = data;
 
-				dispatch(messagesApi.endpoints.addMessage.initiate(data));
+							const receiver = users.find(
+								(user) => user.email !== sender.email
+							);
+
+							const messageDetails = {
+								conversationId: id,
+								sender,
+								receiver,
+								message,
+								timestamp,
+							};
+
+							draft.push(messageDetails);
+						}
+					)
+				);
+
+				try {
+					// add message to the db
+					const { data: conversationData } = await queryFulfilled;
+					const {
+						id: conversationId,
+						users,
+						message,
+						timestamp,
+					} = conversationData;
+
+					const receiver = users.find(
+						(user) => user.email !== sender.email
+					);
+
+					const messageDetails = {
+						conversationId,
+						sender,
+						receiver,
+						message,
+						timestamp,
+					};
+
+					dispatch(
+						messagesApi.endpoints.addMessage.initiate(
+							messageDetails
+						)
+					);
+				} catch (error) {
+					// undo cache update
+					conversationUpdate.undo();
+					messagesUpdate.undo();
+				}
 			},
 		}),
 	}),
